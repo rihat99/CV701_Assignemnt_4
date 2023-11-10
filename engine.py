@@ -74,8 +74,6 @@ def val_step(
             data, target = data.to(device), target.to(device)
 
             output = model(data)
-            if model._get_name() == "LRASPP":
-                output = output["out"]
 
             val_loss += loss_fn(output, target).item()
 

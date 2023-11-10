@@ -72,7 +72,6 @@ def main():
         v2.Normalize(mean=[0.485,0.456,0.406],std=[0.229,0.224,0.225]),
         v2.ToImage(),
         v2.ToDtype(torch.float),
-        v2.RandomHorizontalFlip(p=0.5),
         v2.RandomRotation(degrees=(-25, 25)),
         v2.RandomAffine(degrees=(-15, 15), translate=(0.2, 0.2), scale=(0.8, 1.2), shear=(-10, 10, -10, 10)),
         v2.RandomResizedCrop((IMAGE_SIZE, IMAGE_SIZE), scale=(0.8, 1.0), antialias=True),

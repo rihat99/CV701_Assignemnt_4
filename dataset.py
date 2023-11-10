@@ -66,6 +66,6 @@ class FacialKeypointsDataset(Dataset):
         key_pts = key_pts.type(torch.float)
         
         #flatten key points
-        key_pts = key_pts.view(-1)
+        key_pts = key_pts.reshape(-1)
 
         return image, key_pts
