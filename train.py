@@ -15,13 +15,21 @@ import matplotlib.pyplot as plt
 import numpy as np
 import random
 
+from utils import EarlyStopper
+
 import yaml
 import json
 import time
 import os
+import wandb
 
 
 config = yaml.load(open('config.yaml', 'r'), Loader=yaml.FullLoader)
+
+
+
+run = wandb.init(project='cv_assignment4', config=config)
+
 
 LEARNING_RATE = float(config["LEARNING_RATE"])
 BATCH_SIZE = int(config["BATCH_SIZE"])
@@ -102,6 +110,8 @@ def main():
     optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE)
     lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=NUM_EPOCHS)
 
+    early_stopper = EarlyStopper(patience=5, min_delta=0.001)
+     
     #train model
     results = trainer(
         model=model,
@@ -113,6 +123,7 @@ def main():
         device=DEVICE,
         epochs=NUM_EPOCHS,
         save_dir=save_dir,
+        early_stopper=early_stopper,
     )
 
     train_summary = {

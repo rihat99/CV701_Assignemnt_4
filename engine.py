@@ -3,6 +3,7 @@ import torch
 from tqdm import tqdm
 
 from utils import save_model
+import wandb
 
 def train_step(
         model: torch.nn.Module,
@@ -94,6 +95,7 @@ def trainer(
         device: torch.device,
         epochs: int,
         save_dir: str,
+        early_stopper=None,
 ):
     """
     Train and evaluate model.
@@ -123,6 +125,7 @@ def trainer(
         print(f"Epoch {epoch}:")
         train_loss = train_step(model, train_loader, loss_fn, optimizer,  device)
         print(f"Train Loss: {train_loss:.4f}")
+
         
         print(f"Learning rate: {optimizer.param_groups[0]['lr']:.5f}")
         results["learning_rate"].append(optimizer.param_groups[0]["lr"])
@@ -133,14 +136,23 @@ def trainer(
         val_loss = val_step(model, val_loader, loss_fn, device)
         print(f"Val Loss: {val_loss:.4f}")
         print()
+
+        
         
         results["val_loss"].append(val_loss)
+
+        wandb.log({"train_loss": train_loss, "val_loss": val_loss, "learning_rate": optimizer.param_groups[0]["lr"]})
 
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             save_model(model, save_dir + "/best_model.pth")
 
         save_model(model, save_dir + "/last_model.pth")
+
+        if early_stopper is not None:
+            if early_stopper.early_stop(val_loss):
+                print("Early stopping")
+                break
 
 
     return results
