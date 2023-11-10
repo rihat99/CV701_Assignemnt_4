@@ -28,12 +28,13 @@ config = yaml.load(open('config.yaml', 'r'), Loader=yaml.FullLoader)
 
 
 
-run = wandb.init(project='cv_assignment4', config=config)
+run = wandb.init(entity='biomed', project='cv_assignment4', config=config)
 
 
 LEARNING_RATE = float(config["LEARNING_RATE"])
 BATCH_SIZE = int(config["BATCH_SIZE"])
 NUM_EPOCHS = int(config["NUM_EPOCHS"])
+PATIENCE = int(config["PATIENCE"])
 
 LOSS = config["LOSS"]
 
@@ -110,7 +111,7 @@ def main():
     optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE)
     lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=NUM_EPOCHS)
 
-    early_stopper = EarlyStopper(patience=5, min_delta=0.001)
+    early_stopper = EarlyStopper(patience=PATIENCE, min_delta=0.001)
      
     #train model
     results = trainer(

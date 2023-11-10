@@ -30,7 +30,7 @@ def train_step(
     train_loss = 0.0
 
     for batch_idx, (data, target) in enumerate(tqdm(train_loader)):
-        target = target.view(-1, 68 * 2)
+        # target = target.view(-1, 68 * 2)
         data, target = data.to(device), target.to(device)
 
         optimizer.zero_grad()
@@ -70,7 +70,7 @@ def val_step(
 
     with torch.no_grad():
         for data, target in tqdm(val_loader):
-            target = target.view(-1, 68 * 2)
+            # target = target.view(-1, 68 * 2)
             data, target = data.to(device), target.to(device)
 
             output = model(data)
