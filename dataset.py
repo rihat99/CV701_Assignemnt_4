@@ -56,12 +56,12 @@ class FacialKeypointsDataset(Dataset):
         key_pts = key_pts[:, 0:2]
 
         # # normalize key points
-        # key_pts[:, 0] = key_pts[:, 0] / image.shape[1]
-        # key_pts[:, 1] = key_pts[:, 1] / image.shape[2]
+        key_pts[:, 0] = key_pts[:, 0] / image.shape[1]
+        key_pts[:, 1] = key_pts[:, 1] / image.shape[2]
         
         # normalize key points -1 to 1
-        key_pts[:, 0] = (key_pts[:, 0] - image.shape[1]/2) / (image.shape[1]/2)
-        key_pts[:, 1] = (key_pts[:, 1] - image.shape[2]/2) / (image.shape[2]/2)
+        # key_pts[:, 0] = (key_pts[:, 0] - image.shape[1]/2) / (image.shape[1]/2)
+        # key_pts[:, 1] = (key_pts[:, 1] - image.shape[2]/2) / (image.shape[2]/2)
 
         key_pts = key_pts.type(torch.float)
         

@@ -127,7 +127,9 @@ def trainer(
         
         print(f"Learning rate: {optimizer.param_groups[0]['lr']:.5f}")
         results["learning_rate"].append(optimizer.param_groups[0]["lr"])
-        lr_scheduler.step()
+
+        if lr_scheduler is not None:
+            lr_scheduler.step()
 
         results["train_loss"].append(train_loss)
 

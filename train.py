@@ -32,6 +32,7 @@ run = wandb.init(entity='biomed', project='cv_assignment4', config=config)
 
 
 LEARNING_RATE = float(config["LEARNING_RATE"])
+LEARNING_SCHEDULER = config["LEARNING_SCHEDULER"]
 BATCH_SIZE = int(config["BATCH_SIZE"])
 NUM_EPOCHS = int(config["NUM_EPOCHS"])
 PATIENCE = int(config["PATIENCE"])
@@ -72,8 +73,8 @@ def main():
         v2.Normalize(mean=[0.485,0.456,0.406],std=[0.229,0.224,0.225]),
         v2.ToImage(),
         v2.ToDtype(torch.float),
-        v2.RandomRotation(degrees=(-25, 25)),
-        v2.RandomAffine(degrees=(-15, 15), translate=(0.2, 0.2), scale=(0.8, 1.2), shear=(-10, 10, -10, 10)),
+        v2.RandomRotation(degrees=(-90, 90)),
+        v2.RandomAffine(degrees=(-45, 45), translate=(0.4, 0.4), scale=(0.7, 1.3), shear=(-10, 10, -10, 10)),
         v2.RandomResizedCrop((IMAGE_SIZE, IMAGE_SIZE), scale=(0.8, 1.0), antialias=True),
         v2.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),
         v2.GaussianBlur(kernel_size=3, sigma=(0.1, 1.0)),
@@ -104,11 +105,19 @@ def main():
     #load optimizer
     if LOSS == "MSE":
         loss = torch.nn.MSELoss()
+    elif LOSS == "L1Loss":
+        loss = torch.nn.L1Loss()
+    elif LOSS == "SmoothL1Loss":
+        loss = torch.nn.SmoothL1Loss()
     else:
         raise Exception("Loss not implemented")
     
     optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE)
-    lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=NUM_EPOCHS)
+
+    if LEARNING_SCHEDULER == "CosineAnnealingLR":
+        lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=NUM_EPOCHS)
+    else:
+        lr_scheduler = None
 
     early_stopper = EarlyStopper(patience=PATIENCE, min_delta=0.001)
      
