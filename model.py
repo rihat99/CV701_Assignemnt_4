@@ -28,6 +28,9 @@ def get_resnet50(pretrained=False):
         for param in model.parameters():
             param.requires_grad = False
 
+        for param in model.layer4.parameters():
+            param.requires_grad = True
+
     else:
         model = resnet50()
     
@@ -35,19 +38,14 @@ def get_resnet50(pretrained=False):
     # Add on fully connected layers for the output of our model
 
     model.fc = torch.nn.Sequential(
+        torch.nn.Dropout(p=0.2),
         torch.nn.Linear(
             in_features=2048,
-            out_features=512,
-            bias=True
-        ),
-        torch.nn.ReLU(),
-        torch.nn.Dropout(p=0.5),
-        torch.nn.Linear(
-            in_features=512,
             out_features=68 * 2,
             bias=True
         )
     )
+    
     return model
 
 
@@ -175,8 +173,9 @@ def get_squeezenet1_1(pretrained=False):
         model = squeezenet1_1(weights=SqueezeNet1_1_Weights.IMAGENET1K_V1)
 
         # Freeze model weights
-        for param in model.parameters():
-            param.requires_grad = False
+        for i in range(10):
+            for param in model.features[i].parameters():
+                param.requires_grad = False
 
     else:
         model = squeezenet1_1()
@@ -209,6 +208,8 @@ def get_model(model_name, pretrained=False):
         return get_mobilenet_v3_large(pretrained)
     elif model_name == "EfficientNetV2S":
         return get_efficientnet_v2_s(pretrained)
+    elif model_name == "SqueezeNet1_1":
+        return get_squeezenet1_1(pretrained)
     
     else:
         raise Exception("Model not implemented")
