@@ -2,7 +2,8 @@ from dataset import FacialKeypointsDataset
 # from models.unet import UNet
 from engine import trainer
 from utils import plot_results
-from model import get_model
+from models.model import get_model
+from models.model_segmentation import get_segmentation_model
 
 import torch
 from torch.utils.data import DataLoader
@@ -23,9 +24,7 @@ import time
 import os
 import wandb
 
-
 config = yaml.load(open('config.yaml', 'r'), Loader=yaml.FullLoader)
-
 
 
 run = wandb.init(entity='biomed', project='cv_assignment4', config=config)
@@ -35,6 +34,8 @@ LEARNING_RATE = float(config["LEARNING_RATE"])
 LEARNING_SCHEDULER = config["LEARNING_SCHEDULER"]
 BATCH_SIZE = int(config["BATCH_SIZE"])
 NUM_EPOCHS = int(config["NUM_EPOCHS"])
+LINEAR_PROBING = config["LINEAR_PROBING"]
+PROBING_EPOCHS = int(config["PROBING_EPOCHS"])
 PATIENCE = int(config["PATIENCE"])
 
 LOSS = config["LOSS"]
@@ -42,6 +43,7 @@ LOSS = config["LOSS"]
 IMAGE_SIZE = int(config["IMAGE_SIZE"])
 MODEL = config["MODEL"]
 PRETRAINED = config["PRETRAINED"]
+HEATMAP = config["HEATMAP"]
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Using {DEVICE} device")
@@ -90,17 +92,22 @@ def main():
     ])
 
     train_dataset = FacialKeypointsDataset(csv_file='data/training_frames_keypoints.csv', root_dir='data/training/',
-                                        transform=transforms_train)
+                                        transform=transforms_train, heatmap=HEATMAP)
 
     test_dataset = FacialKeypointsDataset(csv_file='data/test_frames_keypoints.csv', root_dir='data/test/', 
-                                          transform=transforms_test)
+                                          transform=transforms_test, heatmap=HEATMAP)
 
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=8)
     test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=8)
 
     #load model
-    model = get_model(MODEL, PRETRAINED)
+    if not HEATMAP:
+        model = get_model(MODEL, PRETRAINED)
+    else:
+        model = get_segmentation_model(MODEL, PRETRAINED)
+
     model.to(DEVICE)
+    torch.compile(model)
     
     #load optimizer
     if LOSS == "MSE":
@@ -109,6 +116,9 @@ def main():
         loss = torch.nn.L1Loss()
     elif LOSS == "SmoothL1Loss":
         loss = torch.nn.SmoothL1Loss()
+    elif LOSS == "CrossEntropyLoss":
+        loss = torch.nn.CrossEntropyLoss()
+        
     else:
         raise Exception("Loss not implemented")
     
@@ -120,6 +130,11 @@ def main():
         lr_scheduler = None
 
     early_stopper = EarlyStopper(patience=PATIENCE, min_delta=0.001)
+
+    if LINEAR_PROBING:
+        linear_probing_epochs = PROBING_EPOCHS
+    else:
+        linear_probing_epochs = None
      
     #train model
     results = trainer(
@@ -133,6 +148,7 @@ def main():
         epochs=NUM_EPOCHS,
         save_dir=save_dir,
         early_stopper=early_stopper,
+        linear_probing_epochs=linear_probing_epochs
     )
 
     train_summary = {

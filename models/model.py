@@ -82,8 +82,9 @@ def get_mobilenet_v3_small(pretrained=False):
         model = mobilenet_v3_small(weights=MobileNet_V3_Small_Weights.IMAGENET1K_V1)
 
         # Freeze model weights
-        for param in model.parameters():
-            param.requires_grad = False
+        for i in range(10):
+            for param in model.features[i].parameters():
+                param.requires_grad = False
 
     else:
         model = mobilenet_v3_small()
@@ -91,15 +92,9 @@ def get_mobilenet_v3_small(pretrained=False):
     # Add on fully connected layers for the output of our model
 
     model.classifier = torch.nn.Sequential(
+        torch.nn.Dropout(p=0.2),
         torch.nn.Linear(
             in_features=576,
-            out_features=512,
-            bias=True
-        ),
-        torch.nn.ReLU(),
-        torch.nn.Dropout(p=0.5),
-        torch.nn.Linear(
-            in_features=512,
             out_features=68 * 2,
             bias=True
         )

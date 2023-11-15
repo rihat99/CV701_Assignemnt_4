@@ -30,11 +30,13 @@ def train_step(
     train_loss = 0.0
 
     for batch_idx, (data, target) in enumerate(tqdm(train_loader)):
-        # target = target.view(-1, 68 * 2)
         data, target = data.to(device), target.to(device)
 
         optimizer.zero_grad()
         output = model(data)
+
+        if model._get_name() == "DeepLabV3":
+            output = output["out"]
 
         loss = loss_fn(output, target)
         loss.backward()
@@ -70,10 +72,12 @@ def val_step(
 
     with torch.no_grad():
         for data, target in tqdm(val_loader):
-            # target = target.view(-1, 68 * 2)
             data, target = data.to(device), target.to(device)
 
             output = model(data)
+
+            if model._get_name() == "DeepLabV3":
+                output = output["out"]
 
             val_loss += loss_fn(output, target).item()
 
@@ -94,6 +98,7 @@ def trainer(
         epochs: int,
         save_dir: str,
         early_stopper=None,
+        linear_probing_epochs=None
 ):
     """
     Train and evaluate model.
@@ -120,6 +125,12 @@ def trainer(
     best_val_loss = 1e10
 
     for epoch in range(1, epochs + 1):
+        if linear_probing_epochs is not None:
+            if epoch == linear_probing_epochs:
+                for param in model.parameters():
+                    param.requires_grad = True
+
+
         print(f"Epoch {epoch}:")
         train_loss = train_step(model, train_loader, loss_fn, optimizer,  device)
         print(f"Train Loss: {train_loss:.4f}")
@@ -137,8 +148,6 @@ def trainer(
         print(f"Val Loss: {val_loss:.4f}")
         print()
 
-        
-        
         results["val_loss"].append(val_loss)
 
         wandb.log({"train_loss": train_loss, "val_loss": val_loss, "learning_rate": optimizer.param_groups[0]["lr"]})
