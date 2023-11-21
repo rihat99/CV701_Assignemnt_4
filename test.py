@@ -8,7 +8,7 @@ import argparse
 import time
 
 from models.model import get_model
-from utils import load_model
+from utils import load_model, calculate_MAR, mouth_corner_angle, classify_emotion, compute_curvature_for_lip
 
 
 parser = argparse.ArgumentParser(description='Test facial keypoint detection model')
@@ -63,6 +63,10 @@ model = load_model(model, run_path + "best_model.pth")
 model.to(DEVICE)
 
 
+
+
+
+
 def process_frame(frame):
     frame_orig = frame.copy()
 
@@ -77,7 +81,31 @@ def process_frame(frame):
         output = output.cpu().numpy()
         output = output.reshape(-1, 2)
 
+        keypoints = {
+            'left_mouth_corner': None,
+            'top_lip': None,
+            'right_mouth_corner': None,
+            'bottom_lip': None,
+            'all_top_lip': None,
+            'all_bottom_lip': None,
+        }
+           
+        all_up_lip = []
+        all_bottom_lip = []
         for i in range(output.shape[0]):
+
+            if i == 48:
+                keypoints['left_mouth_corner'] = np.array([output[i, 0], output[i, 1]])
+            elif i == 51:
+                keypoints['top_lip'] = np.array([output[i, 0], output[i, 1]])
+                keypoints['right_mouth_corner'] = np.array([output[i, 0], output[i, 1]])
+            elif i == 57:
+                keypoints['bottom_lip'] = np.array([output[i, 0], output[i, 1]])
+
+            if i >= 48 and i <= 54:
+                all_up_lip.append([output[i, 0], output[i, 1]])
+            elif i >= 55 and i <= 60 or i == 64:
+                all_bottom_lip.append([output[i, 0], output[i, 1]])
 
             if i <= 16:
                 color = (0, 0, 255)
@@ -92,8 +120,25 @@ def process_frame(frame):
 
             circle_size = (height + width) // 300
             cv2.circle(frame, (int(output[i, 0] * width), int(output[i, 1] * height)), circle_size, color, -1)
+        
+        keypoints['all_top_lip'] = np.array(all_up_lip)
+        keypoints['all_bottom_lip'] = np.array(all_bottom_lip)
+
+        MAR = calculate_MAR(keypoints)
+        angle_left, angle_right = mouth_corner_angle(keypoints)
+        curvature_bottom_lip = compute_curvature_for_lip(keypoints['all_bottom_lip'])
+        curvature_top_lip = compute_curvature_for_lip(keypoints['all_top_lip'])
+        curvature_ratio = curvature_bottom_lip / curvature_top_lip
+
+        emotion = classify_emotion(MAR, angle_left, angle_right, curvature_ratio)
+
 
     frame = cv2.addWeighted(frame, 0.4, frame_orig, 0.6, 0)
+    
+    #put emotion text upper left corner of the frame
+    cv2.putText(frame, emotion, (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
+
+
 
     return frame
 
