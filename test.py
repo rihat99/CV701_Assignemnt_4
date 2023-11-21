@@ -15,7 +15,7 @@ parser = argparse.ArgumentParser(description='Test facial keypoint detection mod
 parser.add_argument('--video', type=str, default=None, help='Path to video file')
 parser.add_argument('--image', type=str, default=None, help='Path to image file')
 parser.add_argument('--camera', action='store_true', help='Use camera')
-parser.add_argument('--run', type=str, default="2023-11-14_14-24-32", help='Run name')
+parser.add_argument('--run', type=str, default="2023-11-22_01-14-02", help='Run name')
 parser.add_argument('--save', action='store_true', help='Save output video')
 args = parser.parse_args()
 
@@ -42,7 +42,7 @@ elif args.image is not None:
 if args.save and (args.video or args.camera):
     # save in mp4 format
     run_id = time.strftime("%Y-%m-%d_%H-%M-%S")
-    save_path = f"samples/{run_id}.mp4"
+    save_path = f"samples/output/{run_id}.mp4"
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     out = cv2.VideoWriter(save_path, fourcc, fps, (width, height))
     
@@ -125,7 +125,7 @@ elif args.image:
 
     if args.save:
         run_id = time.strftime("%Y-%m-%d_%H-%M-%S")
-        save_path = f"samples/{run_id}.jpg"
+        save_path = f"samples/output/{run_id}.jpg"
         cv2.imwrite(save_path, frame)
     cv2.waitKey(0)
     cv2.destroyAllWindows()

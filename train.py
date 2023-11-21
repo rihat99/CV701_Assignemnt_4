@@ -75,13 +75,17 @@ def main():
         v2.Normalize(mean=[0.485,0.456,0.406],std=[0.229,0.224,0.225]),
         v2.ToImage(),
         v2.ToDtype(torch.float),
+        # v2.ElasticTransform(alpha=60),
         v2.RandomRotation(degrees=(-70, 70)),
-        v2.RandomAffine(degrees=(-15, 15), translate=(0.25, 0.25), scale=(0.7, 1.3), shear=(-10, 10, -10, 10)),
-        v2.RandomResizedCrop((IMAGE_SIZE, IMAGE_SIZE), scale=(0.8, 1.0), antialias=True),
+        v2.RandomAffine(degrees=(-15, 15), translate=(0.25, 0.25), scale=(0.7, 1.3), shear=(-15, 15, -15, 15)),
+        v2.RandomPerspective(distortion_scale=0.2, p=0.2),
+        v2.RandomResizedCrop((IMAGE_SIZE, IMAGE_SIZE), scale=(0.7, 1.4), antialias=True),
         v2.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),
         v2.GaussianBlur(kernel_size=3, sigma=(0.1, 1.0)),
         v2.RandomAutocontrast(p=0.2),
         v2.RandomEqualize(p=0.2),
+
+        v2.RandomErasing(p=0.4, scale=(0.05, 0.2), ratio=(0.33, 3.3), value=0, inplace=False),
     ])
 
     transforms_test = v2.Compose([

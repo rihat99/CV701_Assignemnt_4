@@ -108,9 +108,9 @@ def get_mobilenet_v3_large(pretrained=False):
         model = mobilenet_v3_large(weights=MobileNet_V3_Large_Weights.IMAGENET1K_V2)
 
         # Freeze model weights
-        for param in model.parameters():
-            param.requires_grad = False
-
+        for i in range(13):
+            for param in model.features[i].parameters():
+                param.requires_grad = False
     else:
         model = mobilenet_v3_large()
 
@@ -121,8 +121,8 @@ def get_mobilenet_v3_large(pretrained=False):
             out_features=512,
             bias=True
         ),
-        torch.nn.ReLU(),
-        torch.nn.Dropout(p=0.5),
+        torch.nn.Hardswish(),
+        torch.nn.Dropout(p=0.2, inplace=True),
         torch.nn.Linear(
             in_features=512,
             out_features=68 * 2,
