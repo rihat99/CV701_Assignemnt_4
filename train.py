@@ -85,7 +85,7 @@ def main():
         v2.RandomAutocontrast(p=0.2),
         v2.RandomEqualize(p=0.2),
 
-        v2.RandomErasing(p=0.4, scale=(0.05, 0.2), ratio=(0.33, 3.3), value=0, inplace=False),
+        # v2.RandomErasing(p=0.4, scale=(0.05, 0.2), ratio=(0.33, 3.3), value=0, inplace=False),
     ])
 
     transforms_test = v2.Compose([

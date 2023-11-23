@@ -31,11 +31,17 @@ def get_resnet50(pretrained=False):
         for param in model.layer4.parameters():
             param.requires_grad = True
 
+        for i, (name, layer) in enumerate(model.layer4.named_modules()):
+            if isinstance(layer, torch.nn.Conv2d):
+                layer.reset_parameters()
+
     else:
         model = resnet50()
     
 
     # Add on fully connected layers for the output of our model
+
+    # model.avgpool = torch.nn.Identity()
 
     model.fc = torch.nn.Sequential(
         torch.nn.Dropout(p=0.2),

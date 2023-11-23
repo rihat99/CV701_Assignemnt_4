@@ -5,6 +5,7 @@ import numpy as np
 import sklearn
 from scipy.interpolate import interp1d
 from scipy.integrate import quad
+import cv2
 
 def plot_results(train_data, val_data, label, save_dir):
 
@@ -116,6 +117,45 @@ def classify_emotion(MAR, angle_left, angle_right, curvature_ratio):
         return 'Neutral'
 
 
+def get_emotion(output):
+    keypoints = {
+        'left_mouth_corner': None,
+        'top_lip': None,
+        'right_mouth_corner': None,
+        'bottom_lip': None,
+        'all_top_lip': None,
+        'all_bottom_lip': None,
+    }
+        
+    all_up_lip = []
+    all_bottom_lip = []
+    for i in range(output.shape[0]):
+
+        if i == 48:
+            keypoints['left_mouth_corner'] = np.array([output[i, 0], output[i, 1]])
+        elif i == 51:
+            keypoints['top_lip'] = np.array([output[i, 0], output[i, 1]])
+            keypoints['right_mouth_corner'] = np.array([output[i, 0], output[i, 1]])
+        elif i == 57:
+            keypoints['bottom_lip'] = np.array([output[i, 0], output[i, 1]])
+
+        if i >= 48 and i <= 54:
+            all_up_lip.append([output[i, 0], output[i, 1]])
+        elif i >= 55 and i <= 60 or i == 64:
+            all_bottom_lip.append([output[i, 0], output[i, 1]])
+
+    keypoints['all_top_lip'] = np.array(all_up_lip)
+    keypoints['all_bottom_lip'] = np.array(all_bottom_lip)
+
+    MAR = calculate_MAR(keypoints)
+    angle_left, angle_right = mouth_corner_angle(keypoints)
+    curvature_bottom_lip = compute_curvature_for_lip(keypoints['all_bottom_lip'])
+    curvature_top_lip = compute_curvature_for_lip(keypoints['all_top_lip'])
+    curvature_ratio = curvature_bottom_lip / curvature_top_lip
+
+    emotion = classify_emotion(MAR, angle_left, angle_right, curvature_ratio)
+
+    return emotion
 
 
 class EarlyStopper:
@@ -134,3 +174,89 @@ class EarlyStopper:
             if self.counter >= self.patience:
                 return True
         return False
+    
+
+def draw_face_mask(frame, output):
+    frame_orig = frame.copy()
+
+    height, width, _ = frame.shape
+
+    for i in range(output.shape[0]):
+        if i <= 16:
+            color = (0, 0, 255)
+            color_2 = (0, 0, 100)
+
+            if i < 16:
+                cv2.line(frame, (int(output[i, 0] * width), int(output[i, 1] * height)),
+                         (int(output[i + 1, 0] * width), int(output[i + 1, 1] * height)), color_2, 2)
+
+        elif i <= 26:
+            color = (0, 255, 255)
+            color_2 = (0, 100, 100)
+
+            if i < 21:
+                cv2.line(frame, (int(output[i, 0] * width), int(output[i, 1] * height)),
+                         (int(output[i + 1, 0] * width), int(output[i + 1, 1] * height)), color_2, 2)
+            
+            if i > 21 and i < 26:
+                cv2.line(frame, (int(output[i, 0] * width), int(output[i, 1] * height)),
+                         (int(output[i + 1, 0] * width), int(output[i + 1, 1] * height)), color_2, 2)
+
+        elif i <= 35:
+            color = (0, 255, 0)
+            color_2 = (0, 100, 0)
+
+            if i < 35:
+                cv2.line(frame, (int(output[i, 0] * width), int(output[i, 1] * height)),
+                         (int(output[i + 1, 0] * width), int(output[i + 1, 1] * height)), color_2, 2)
+                
+            if i == 30:
+                cv2.line(frame, (int(output[35, 0] * width), int(output[35, 1] * height)),
+                         (int(output[i, 0] * width), int(output[i, 1] * height)), color_2, 2)
+
+        elif i <= 47:
+            color = (255, 255, 0)
+            color_2 = (100, 100, 0)
+
+            if i < 41:
+                cv2.line(frame, (int(output[i, 0] * width), int(output[i, 1] * height)),
+                         (int(output[i + 1, 0] * width), int(output[i + 1, 1] * height)), color_2, 2)
+            
+            if i > 41 and i < 47:
+                cv2.line(frame, (int(output[i, 0] * width), int(output[i, 1] * height)),
+                         (int(output[i + 1, 0] * width), int(output[i + 1, 1] * height)), color_2, 2)
+                
+            if i == 36:
+                cv2.line(frame, (int(output[41, 0] * width), int(output[41, 1] * height)),
+                         (int(output[i, 0] * width), int(output[i, 1] * height)), color_2, 2)
+                
+            if i == 42:
+                cv2.line(frame, (int(output[47, 0] * width), int(output[47, 1] * height)),
+                         (int(output[i, 0] * width), int(output[i, 1] * height)), color_2, 2)
+
+        else:
+            color = (255, 0, 0)
+            color_2 = (100, 0, 0)
+
+            if i < 59:
+                cv2.line(frame, (int(output[i, 0] * width), int(output[i, 1] * height)),
+                         (int(output[i + 1, 0] * width), int(output[i + 1, 1] * height)), color_2, 2)
+                
+            if i == 48:
+                cv2.line(frame, (int(output[59, 0] * width), int(output[59, 1] * height)),
+                         (int(output[i, 0] * width), int(output[i, 1] * height)), color_2, 2)
+                
+            if i > 59 and i < 67:
+                cv2.line(frame, (int(output[i, 0] * width), int(output[i, 1] * height)),
+                         (int(output[i + 1, 0] * width), int(output[i + 1, 1] * height)), color_2, 2)
+            
+            if i == 60:
+                cv2.line(frame, (int(output[67, 0] * width), int(output[67, 1] * height)),
+                         (int(output[i, 0] * width), int(output[i, 1] * height)), color_2, 2)
+
+        circle_size = (height + width) // 300
+        cv2.circle(frame, (int(output[i, 0] * width), int(output[i, 1] * height)), circle_size, color, -1)
+
+    frame = cv2.addWeighted(frame, 0.4, frame_orig, 0.6, 0)
+
+    return frame
