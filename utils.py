@@ -111,20 +111,48 @@ def classify_emotion(MAR, angle_left, angle_right, angle_up, angle_bottom, curva
     negative = 0
     # neutral = 0
 
-    if MAR > 0.38:
-        positive += 1
-    else:
-        negative += 1
+    # if MAR > 0.38:
+    #     positive += 1
+    # else:
+    #     negative += 1
 
-    if angle_bottom < 127:
-        positive += 1
-    else:
-        negative += 1
+    # if angle_bottom < 127:
+    #     positive += 1
+    # else:
+    #     negative += 1
 
-    if angle_up < 145:
-        positive += 1
+    weights = [3.5,1,1,0.5,0.3,0.7]
+    if angle_up > 149:
+        positive += weights[0]
     else:
-        negative += 1
+        negative += weights[0]
+    
+    if angle_bottom < 126.5:
+        positive += weights[1]
+    else:
+        negative += weights[1]
+    
+    if MAR < 0.37 and MAR > 0.39:
+        positive += weights[2]
+    else:
+        negative += weights[2]
+    
+    if curvature_ratio > 0.1 and curvature_ratio < 0.2:
+        positive += weights[3]
+    else:
+        negative += weights[3]
+
+    if angle_right<41 and angle_right>43.5:
+        positive += weights[4]
+    else:
+        negative +=     weights[4]
+    
+    if angle_left<39 and angle_left>42:
+        positive += weights[5]
+    else:
+        negative += weights[5]
+
+    
     
     return 'positive' if positive > negative else 'negative'
 
@@ -152,9 +180,9 @@ def get_emotion(output):
         elif i == 57:
             keypoints['bottom_lip'] = np.array([output[i, 0], output[i, 1]])
 
-        if i >= 48 and i <= 54:
+        if i >= 61 and i <= 63:
             all_up_lip.append([output[i, 0], output[i, 1]])
-        elif i >= 55 and i <= 60 or i == 64:
+        elif i >= 65 and i <= 67:
             all_bottom_lip.append([output[i, 0], output[i, 1]])
 
     keypoints['all_top_lip'] = np.array(all_up_lip)
@@ -166,19 +194,25 @@ def get_emotion(output):
     curvature_top_lip = compute_curvature_for_lip(keypoints['all_top_lip'])
     curvature_ratio = curvature_bottom_lip / curvature_top_lip
 
-    # print(f'MAR: {MAR}')
-    # print(f'Angle left: {angle_left}')
-    # print(f'Angle right: {angle_right}')
-    # print(f'Angle up: {angle_up}')
-    # print(f'Angle bottom: {angle_bottom}')
-    # print(f'Curvature top lip: {curvature_top_lip}')
-    # print(f'Curvature bottom lip: {curvature_bottom_lip}')
-    # print(f'Curvature ratio: {curvature_ratio}')
+    #distance between left and right mouth corner
+    distance = np.linalg.norm(keypoints['left_mouth_corner'] - keypoints['right_mouth_corner'])
+
+    curvature_ratio = curvature_ratio * distance
+
+    #create a dictionary with all the values
+    results = {
+        'MAR': str(MAR),
+        'angle_left': str(angle_left),
+        'angle_right': str(angle_right),
+        'angle_up': str(angle_up),
+        'angle_bottom': str(angle_bottom),
+        'curvature_ratio': str(curvature_ratio),
+    }
 
 
     emotion = classify_emotion(MAR, angle_left, angle_right, angle_up, angle_bottom, curvature_ratio)
 
-    return emotion
+    return emotion, results
 
 
 class EarlyStopper:
