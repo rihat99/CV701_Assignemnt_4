@@ -17,9 +17,12 @@ parser = argparse.ArgumentParser(description='Test facial keypoint detection mod
 parser.add_argument('--video', type=str, default=None, help='Path to video file')
 parser.add_argument('--image', type=str, default=None, help='Path to image file')
 parser.add_argument('--camera', action='store_true', help='Use camera')
-parser.add_argument('--run', type=str, default="2023-11-23_13-12-53", help='Run name')
+parser.add_argument('--run', type=str, default="2023-11-14_14-24-32", help='Run name')
 parser.add_argument('--save', action='store_true', help='Save output video')
 args = parser.parse_args()
+
+global fps
+
 
 if args.video is not None:
     video_path= args.video
@@ -43,6 +46,9 @@ elif args.image is not None:
 
 if args.save and (args.video or args.camera):
     # save in mp4 format
+    #if there is no samples/output folder, create it
+    if not os.path.exists("samples/output"):
+        os.mkdir("samples/output")
     run_id = time.strftime("%Y-%m-%d_%H-%M-%S")
     save_path = f"samples/output/{run_id}.mp4"
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
@@ -73,7 +79,7 @@ transforms_test = v2.Compose([
     v2.Resize((IMAGE_SIZE, IMAGE_SIZE), antialias=True),
 ])
 
-def process_frame(frame):
+def process_frame(frame, framecount):
     frame_orig = frame.copy()
 
     frame_t = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -91,29 +97,45 @@ def process_frame(frame):
         output = output.reshape(-1, 2)
 
     frame = draw_face_mask(frame, output)
-    emotion = get_emotion(output)
-    
+    emotion, results = get_emotion(output)
+
+    #
+    results["frame"] = str(framecount)
+
+
+
     #put emotion text upper left corner of the frame
     cv2.putText(frame, emotion, (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
 
-    return frame
+    return frame, results
 
 
 if args.video or args.camera:
+    framecount = 0
+    print("FPS: ", fps)
+    results = []
     while(True):
         
         ret, frame = cap.read()
         if not ret:
             break
+        
+        framecount += 1
 
-        frame = process_frame(frame)
-
+        # frame, result = process_frame(frame, framecount)
+        frame, result = process_frame(frame, framecount)
+        results.append(result)
+        
+            
         cv2.imshow('Facial Keypoints Detection',frame)
         if cv2.waitKey(50) & 0xFF == ord('q'):
             break
 
         if args.save:
             out.write(frame)
+    save_path = f"samples/output/results.json"
+    with open(save_path, 'w') as f:
+        json.dump(results, f, indent=4)
 
     cap.release()
     if args.save:
@@ -125,6 +147,9 @@ elif args.image:
     cv2.imshow('frame',frame)
 
     if args.save:
+        #if there is no samples/output folder, create it
+        if not os.path.exists("samples/output"):
+            os.mkdir("samples/output")
         run_id = time.strftime("%Y-%m-%d_%H-%M-%S")
         save_path = f"samples/output/{run_id}.jpg"
         cv2.imwrite(save_path, frame)
