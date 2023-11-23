@@ -1,4 +1,5 @@
 import torch
+from torchvision.transforms import v2
 import numpy as np
 import matplotlib.pyplot as plt
 import os
@@ -64,15 +65,23 @@ model = load_model(model, run_path + "best_model.pth")
 model.to(DEVICE)
 
 
-
+transforms_test = v2.Compose([
+    v2.Normalize(mean=[0.485,0.456,0.406],std=[0.229,0.224,0.225]),
+    v2.ToImage(),
+    v2.ToDtype(torch.float),
+    v2.Resize((IMAGE_SIZE, IMAGE_SIZE), antialias=True),
+])
 
 def process_frame(frame):
     frame_orig = frame.copy()
 
     frame_t = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    frame_t = cv2.resize(frame_t, (IMAGE_SIZE, IMAGE_SIZE))
+    # frame_t = cv2.resize(frame_t, (IMAGE_SIZE, IMAGE_SIZE))
     frame_t = frame_t / 255.0
-    frame_t = torch.from_numpy(frame_t).permute(2, 0, 1).unsqueeze(0).float().to(DEVICE)
+    # frame_t = torch.from_numpy(frame_t).permute(2, 0, 1).unsqueeze(0).float().to(DEVICE)
+    # frame_t = np.expand_dims(frame_t, axis=0)
+    frame_t = transforms_test(frame_t).to(DEVICE)
+    frame_t = frame_t.unsqueeze(0)
 
     with torch.no_grad():
         model.eval()

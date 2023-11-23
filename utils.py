@@ -91,10 +91,14 @@ def mouth_corner_angle(keypoints):
     vec3 = keypoints['top_lip'] - keypoints['right_mouth_corner']
     vec4 = keypoints['bottom_lip'] - keypoints['right_mouth_corner']
     angle_right = np.degrees(np.arctan2(np.linalg.norm(np.cross(vec3, vec4)), np.dot(vec3, vec4)))
-    
-    return angle_left, angle_right
 
-def classify_emotion(MAR, angle_left, angle_right, curvature_ratio):
+    # find top and bottom angles
+    angle_up = np.degrees(np.arctan2(np.linalg.norm(np.cross(vec1, vec3)), np.dot(vec1, vec3)))
+    angle_bottom = np.degrees(np.arctan2(np.linalg.norm(np.cross(vec2, vec4)), np.dot(vec2, vec4)))
+    
+    return angle_left, angle_right, angle_up, angle_bottom
+
+def classify_emotion(MAR, angle_left, angle_right, angle_up, angle_bottom, curvature_ratio):
 
     """
 
@@ -103,18 +107,26 @@ def classify_emotion(MAR, angle_left, angle_right, curvature_ratio):
     """
 
     # Emotion classification based on multiple factors: MAR, angles, and curvature ratio
+    positive = 0
+    negative = 0
+    # neutral = 0
 
-    if MAR > 0.3 and angle_left < 160 and angle_right < 160 and curvature_ratio > 1:
-
-        return 'Positive'
-
-    elif MAR < 0.2 and angle_left > 170 and angle_right > 170 and curvature_ratio < 1:
-
-        return 'Negative'
-
+    if MAR > 0.38:
+        positive += 1
     else:
+        negative += 1
 
-        return 'Neutral'
+    if angle_bottom < 127:
+        positive += 1
+    else:
+        negative += 1
+
+    if angle_up < 145:
+        positive += 1
+    else:
+        negative += 1
+    
+    return 'positive' if positive > negative else 'negative'
 
 
 def get_emotion(output):
@@ -135,6 +147,7 @@ def get_emotion(output):
             keypoints['left_mouth_corner'] = np.array([output[i, 0], output[i, 1]])
         elif i == 51:
             keypoints['top_lip'] = np.array([output[i, 0], output[i, 1]])
+        elif i == 54:
             keypoints['right_mouth_corner'] = np.array([output[i, 0], output[i, 1]])
         elif i == 57:
             keypoints['bottom_lip'] = np.array([output[i, 0], output[i, 1]])
@@ -148,12 +161,22 @@ def get_emotion(output):
     keypoints['all_bottom_lip'] = np.array(all_bottom_lip)
 
     MAR = calculate_MAR(keypoints)
-    angle_left, angle_right = mouth_corner_angle(keypoints)
+    angle_left, angle_right, angle_up, angle_bottom = mouth_corner_angle(keypoints)
     curvature_bottom_lip = compute_curvature_for_lip(keypoints['all_bottom_lip'])
     curvature_top_lip = compute_curvature_for_lip(keypoints['all_top_lip'])
     curvature_ratio = curvature_bottom_lip / curvature_top_lip
 
-    emotion = classify_emotion(MAR, angle_left, angle_right, curvature_ratio)
+    # print(f'MAR: {MAR}')
+    # print(f'Angle left: {angle_left}')
+    # print(f'Angle right: {angle_right}')
+    # print(f'Angle up: {angle_up}')
+    # print(f'Angle bottom: {angle_bottom}')
+    # print(f'Curvature top lip: {curvature_top_lip}')
+    # print(f'Curvature bottom lip: {curvature_bottom_lip}')
+    # print(f'Curvature ratio: {curvature_ratio}')
+
+
+    emotion = classify_emotion(MAR, angle_left, angle_right, angle_up, angle_bottom, curvature_ratio)
 
     return emotion
 
