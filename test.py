@@ -62,6 +62,7 @@ DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 model = get_model(MODEL)
 model = load_model(model, run_path + "best_model.pth")
+model = torch.jit.script(model)
 model.to(DEVICE)
 
 

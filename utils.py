@@ -204,18 +204,31 @@ def draw_face_mask(frame, output):
 
     height, width, _ = frame.shape
 
+    colors_map = {
+        "jaw": (255, 0, 0),
+        "jaw_line": (200, 200, 200),
+        "eyebrow": (255, 255, 0),
+        "eyebrow_line": (200, 200, 200),
+        "nose": (0, 255, 0),
+        "nose_line": (200, 200, 200),
+        "eye": (0, 255, 255),
+        "eye_line": (200, 200, 200),
+        "mouth": (0, 0, 255),
+        "mouth_line": (200, 200, 200),
+    }
+
     for i in range(output.shape[0]):
-        if i <= 16:
-            color = (0, 0, 255)
-            color_2 = (0, 0, 100)
+        if i <= 16: # jaw
+            color = colors_map["jaw"]
+            color_2 = colors_map["jaw_line"]
 
             if i < 16:
                 cv2.line(frame, (int(output[i, 0] * width), int(output[i, 1] * height)),
                          (int(output[i + 1, 0] * width), int(output[i + 1, 1] * height)), color_2, 2)
 
         elif i <= 26:
-            color = (0, 255, 255)
-            color_2 = (0, 100, 100)
+            color = colors_map["eyebrow"]
+            color_2 = colors_map["eyebrow_line"]
 
             if i < 21:
                 cv2.line(frame, (int(output[i, 0] * width), int(output[i, 1] * height)),
@@ -226,8 +239,8 @@ def draw_face_mask(frame, output):
                          (int(output[i + 1, 0] * width), int(output[i + 1, 1] * height)), color_2, 2)
 
         elif i <= 35:
-            color = (0, 255, 0)
-            color_2 = (0, 100, 0)
+            color = colors_map["nose"]
+            color_2 = colors_map["nose_line"]
 
             if i < 35:
                 cv2.line(frame, (int(output[i, 0] * width), int(output[i, 1] * height)),
@@ -238,8 +251,8 @@ def draw_face_mask(frame, output):
                          (int(output[i, 0] * width), int(output[i, 1] * height)), color_2, 2)
 
         elif i <= 47:
-            color = (255, 255, 0)
-            color_2 = (100, 100, 0)
+            color = colors_map["eye"]
+            color_2 = colors_map["eye_line"]
 
             if i < 41:
                 cv2.line(frame, (int(output[i, 0] * width), int(output[i, 1] * height)),
@@ -258,8 +271,8 @@ def draw_face_mask(frame, output):
                          (int(output[i, 0] * width), int(output[i, 1] * height)), color_2, 2)
 
         else:
-            color = (255, 0, 0)
-            color_2 = (100, 0, 0)
+            color = colors_map['mouth']
+            color_2 = colors_map["mouth_line"]
 
             if i < 59:
                 cv2.line(frame, (int(output[i, 0] * width), int(output[i, 1] * height)),
