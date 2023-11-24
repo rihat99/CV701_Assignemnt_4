@@ -17,7 +17,7 @@ parser = argparse.ArgumentParser(description='Test facial keypoint detection mod
 parser.add_argument('--video', type=str, default=None, help='Path to video file')
 parser.add_argument('--image', type=str, default=None, help='Path to image file')
 parser.add_argument('--camera', action='store_true', help='Use camera')
-parser.add_argument('--run', type=str, default="2023-11-14_14-24-32", help='Run name')
+parser.add_argument('--run', type=str, default="2023-11-23_13-12-53", help='Run name')
 parser.add_argument('--save', action='store_true', help='Save output video')
 args = parser.parse_args()
 
@@ -133,7 +133,8 @@ if args.video or args.camera:
 
         if args.save:
             out.write(frame)
-    save_path = f"samples/output/results.json"
+    run_id = time.strftime("%Y-%m-%d_%H-%M-%S")
+    save_path = f"samples/output/results_{run_id}.json"
     with open(save_path, 'w') as f:
         json.dump(results, f, indent=4)
 
