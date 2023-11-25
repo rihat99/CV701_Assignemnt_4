@@ -4,6 +4,9 @@ from torchvision.models import ResNet50_Weights
 from torchvision.models import resnet18
 from torchvision.models import ResNet18_Weights
 
+from torchvision.models import resnet101
+from torchvision.models import ResNet101_Weights
+
 from torchvision.models import mobilenet_v3_small
 from torchvision.models import MobileNet_V3_Small_Weights
 
@@ -66,6 +69,10 @@ def get_resnet18(pretrained=False):
         for param in model.layer4.parameters():
             param.requires_grad = True
 
+        for i, (name, layer) in enumerate(model.layer4.named_modules()):
+            if isinstance(layer, torch.nn.Conv2d):
+                layer.reset_parameters()
+
     else:
         model = resnet18()
 
@@ -80,6 +87,40 @@ def get_resnet18(pretrained=False):
         )
     )
 
+    return model
+
+def get_resnet101(pretrained=False):
+    if pretrained:
+        model = resnet101(weights=ResNet101_Weights.IMAGENET1K_V2)
+
+        # Freeze model weights
+        for param in model.parameters():
+            param.requires_grad = False
+
+        for param in model.layer4.parameters():
+            param.requires_grad = True
+
+        for i, (name, layer) in enumerate(model.layer4.named_modules()):
+            if isinstance(layer, torch.nn.Conv2d):
+                layer.reset_parameters()
+
+    else:
+        model = resnet101()
+    
+
+    # Add on fully connected layers for the output of our model
+
+    # model.avgpool = torch.nn.Identity()
+
+    model.fc = torch.nn.Sequential(
+        torch.nn.Dropout(p=0.2),
+        torch.nn.Linear(
+            in_features=2048,
+            out_features=68 * 2,
+            bias=True
+        )
+    )
+    
     return model
 
 
@@ -117,6 +158,13 @@ def get_mobilenet_v3_large(pretrained=False):
         for i in range(13):
             for param in model.features[i].parameters():
                 param.requires_grad = False
+
+        for i in range(13, 17):
+            for name, layer in model.features[i].named_modules():
+                if isinstance(layer, torch.nn.Conv2d):
+                    # print(i, name, layer)
+                    layer.reset_parameters()
+
     else:
         model = mobilenet_v3_large()
 
@@ -143,9 +191,15 @@ def get_efficientnet_v2_s(pretrained=False):
         model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights.IMAGENET1K_V1)
 
         # Freeze model weights
-        for i in range(7):
+        for i in range(6):
             for param in model.features[i].parameters():
                 param.requires_grad = False
+
+        for i in range(6, 8):
+            for name, layer in model.features[i].named_modules():
+                if isinstance(layer, torch.nn.Conv2d):
+                    # print(i, name, layer)
+                    layer.reset_parameters()
 
     else:
         model = efficientnet_v2_s()
@@ -155,18 +209,10 @@ def get_efficientnet_v2_s(pretrained=False):
         nn.Dropout(0.2),
         torch.nn.Linear(
             in_features=1280,
-            out_features=256,
-            bias=True
-        ),
-        torch.nn.ReLU(),
-        torch.nn.Dropout(p=0.5),
-        torch.nn.Linear(
-            in_features=256,
-            out_features=68 * 2,
+            out_features=68*2,
             bias=True
         )
     )
-
     return model
 
 def get_squeezenet1_1(pretrained=False):
@@ -203,6 +249,8 @@ def get_model(model_name, pretrained=False):
         return get_resnet50(pretrained)
     elif model_name == "ResNet18":
         return get_resnet18(pretrained)
+    elif model_name == "ResNet101":
+        return get_resnet101(pretrained)
     elif model_name == "MobileNetV3Small":
         return get_mobilenet_v3_small(pretrained)
     elif model_name == "MobileNetV3Large":
