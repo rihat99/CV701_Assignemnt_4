@@ -133,7 +133,8 @@ if args.video or args.camera:
 
         if args.save:
             out.write(frame)
-    save_path = f"samples/output/results.json"
+    run_id = time.strftime("%Y-%m-%d_%H-%M-%S")
+    save_path = f"samples/output/results_{run_id}.json"
     with open(save_path, 'w') as f:
         json.dump(results, f, indent=4)
 

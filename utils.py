@@ -121,33 +121,34 @@ def classify_emotion(MAR, angle_left, angle_right, angle_up, angle_bottom, curva
     # else:
     #     negative += 1
 
-    weights = [3.5,1,1,0.5,0.3,0.7]
-    if angle_up > 149:
+    weights = [0.        , 0.05218067, 0.        , 0.        , 0.        ,
+       0.94781933]
+    if MAR < 0.37 and MAR > 0.39:
         positive += weights[0]
     else:
         negative += weights[0]
-    
-    if angle_bottom < 126.5:
+
+    if angle_left > 43.628:
         positive += weights[1]
     else:
         negative += weights[1]
     
-    if MAR < 0.37 and MAR > 0.39:
+    if angle_right<41 and angle_right>43.5:
         positive += weights[2]
     else:
         negative += weights[2]
-    
-    if curvature_ratio > 0.1 and curvature_ratio < 0.2:
+
+    if angle_up > 149:
         positive += weights[3]
     else:
         negative += weights[3]
-
-    if angle_right<41 and angle_right>43.5:
+    
+    if angle_bottom < 126.5:
         positive += weights[4]
     else:
-        negative +=     weights[4]
+        negative += weights[4]
     
-    if angle_left<39 and angle_left>42:
+    if curvature_ratio > 0.545:
         positive += weights[5]
     else:
         negative += weights[5]
