@@ -35,9 +35,6 @@ def train_step(
         optimizer.zero_grad()
         output = model(data)
 
-        if model._get_name() == "DeepLabV3":
-            output = output["out"]
-
         loss = loss_fn(output, target)
         loss.backward()
         optimizer.step()
@@ -76,11 +73,7 @@ def val_step(
 
             output = model(data)
 
-            if model._get_name() == "DeepLabV3":
-                output = output["out"]
-
             val_loss += loss_fn(output, target).item()
-
 
     val_loss /= len(val_loader)
 

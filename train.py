@@ -43,7 +43,6 @@ LOSS = config["LOSS"]
 IMAGE_SIZE = int(config["IMAGE_SIZE"])
 MODEL = config["MODEL"]
 PRETRAINED = config["PRETRAINED"]
-HEATMAP = config["HEATMAP"]
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Using {DEVICE} device")
@@ -96,19 +95,17 @@ def main():
     ])
 
     train_dataset = FacialKeypointsDataset(csv_file='data/training_frames_keypoints.csv', root_dir='data/training/',
-                                        transform=transforms_train, heatmap=HEATMAP)
+                                        transform=transforms_train)
 
     test_dataset = FacialKeypointsDataset(csv_file='data/test_frames_keypoints.csv', root_dir='data/test/', 
-                                          transform=transforms_test, heatmap=HEATMAP)
+                                          transform=transforms_test)
 
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=8)
     test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=8)
 
     #load model
-    if not HEATMAP:
-        model = get_model(MODEL, PRETRAINED)
-    else:
-        model = get_segmentation_model(MODEL, PRETRAINED)
+    model = get_model(MODEL, PRETRAINED)
+
 
     model.to(DEVICE)
     torch.compile(model)

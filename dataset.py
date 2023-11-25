@@ -15,7 +15,7 @@ import torch
 class FacialKeypointsDataset(Dataset):
     """Face Landmarks dataset."""
 
-    def __init__(self, csv_file, root_dir, transform=None, heatmap=False):
+    def __init__(self, csv_file, root_dir, transform=None):
         """
         Args:
             csv_file (string): Path to the csv file with annotations.
@@ -26,7 +26,6 @@ class FacialKeypointsDataset(Dataset):
         self.key_pts_frame = pd.read_csv(csv_file)
         self.root_dir = root_dir
         self.transform = transform
-        self.heatmap = heatmap
 
     def __len__(self):
         return len(self.key_pts_frame)
@@ -56,41 +55,18 @@ class FacialKeypointsDataset(Dataset):
 
         key_pts = key_pts[:, 0:2]
 
-        if not self.heatmap:
 
-            # # normalize key points
-            key_pts[:, 0] = key_pts[:, 0] / image.shape[1]
-            key_pts[:, 1] = key_pts[:, 1] / image.shape[2]
-            
-            # normalize key points -1 to 1
-            # key_pts[:, 0] = (key_pts[:, 0] - image.shape[1]/2) / (image.shape[1]/2)
-            # key_pts[:, 1] = (key_pts[:, 1] - image.shape[2]/2) / (image.shape[2]/2)
-
-            key_pts = key_pts.type(torch.float)
-            
-            #flatten key points
-            key_pts = key_pts.reshape(-1)
-
-            return image, key_pts
+        # # normalize key points
+        key_pts[:, 0] = key_pts[:, 0] / image.shape[1]
+        key_pts[:, 1] = key_pts[:, 1] / image.shape[2]
         
-        else:
+        # normalize key points -1 to 1
+        # key_pts[:, 0] = (key_pts[:, 0] - image.shape[1]/2) / (image.shape[1]/2)
+        # key_pts[:, 1] = (key_pts[:, 1] - image.shape[2]/2) / (image.shape[2]/2)
 
-            keypoints_heatmap = np.zeros((224, 224, 68))
-            sigma = 3
-            window_size = 21
+        key_pts = key_pts.type(torch.float)
+        
+        #flatten key points
+        key_pts = key_pts.reshape(-1)
 
-            for i in range(key_pts.shape[0]):
-                keypoints_y = int(key_pts[i, 0])
-                keypoints_x = int(key_pts[i, 1])
-
-                for x in range(keypoints_x - window_size, keypoints_x + window_size):
-                    for y in range(keypoints_y - window_size, keypoints_y + window_size):
-                        if x < 0 or y < 0 or x >= 224 or y >= 224:
-                            continue
-                        # keypoints_heatmap[x, y, i] = np.exp(-((x - keypoints_x) ** 2 + (y - keypoints_y) ** 2) / (2 * sigma ** 2)) / (2 * np.pi * sigma ** 2)
-                        keypoints_heatmap[x, y, i] = np.exp(-((x - keypoints_x) ** 2 + (y - keypoints_y) ** 2) / (2 * sigma ** 2)) 
-
-            keypoints_heatmap = torch.tensor(keypoints_heatmap, dtype=torch.float)
-            keypoints_heatmap = keypoints_heatmap.permute(2, 0, 1)
-
-            return image, keypoints_heatmap
+        return image, key_pts
