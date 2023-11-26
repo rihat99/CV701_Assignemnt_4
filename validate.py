@@ -11,7 +11,7 @@ from dataset import FacialKeypointsDataset
 import json
 
 
-RUN_NAME = "2023-11-25_00-44-36"
+RUN_NAME = "2023-11-25_20-04-55"
 
 run_path = f"runs/{RUN_NAME}/"
 

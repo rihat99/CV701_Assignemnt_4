@@ -3,7 +3,6 @@ from dataset import FacialKeypointsDataset
 from engine import trainer
 from utils import plot_results
 from models.model import get_model
-from models.model_segmentation import get_segmentation_model
 
 import torch
 from torch.utils.data import DataLoader

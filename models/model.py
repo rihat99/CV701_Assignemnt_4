@@ -19,8 +19,13 @@ from torchvision.models import EfficientNet_V2_S_Weights
 from torchvision.models import squeezenet1_1
 from torchvision.models import SqueezeNet1_1_Weights
 
+from torchvision.models import convnext_tiny
+from torchvision.models import ConvNeXt_Tiny_Weights
+
+
 from torch import nn
 import torch
+import torch.nn.functional as F
 
 
 def get_resnet50(pretrained=False):
@@ -244,6 +249,63 @@ def get_squeezenet1_1(pretrained=False):
     return model
 
 
+def get_convnext_tiny(pretrained=False):
+    if pretrained:
+        model = convnext_tiny(weights=ConvNeXt_Tiny_Weights.IMAGENET1K_V1)
+
+        # Freeze model weights
+        for i in range(6):
+            for param in model.features[i].parameters():
+                param.requires_grad = False
+
+        for i in range(6, 8):
+            for name, layer in model.features[i].named_modules():
+                if isinstance(layer, torch.nn.Conv2d):
+                    # print(i, name, layer)
+                    layer.reset_parameters()
+
+    else:
+        model = convnext_tiny()
+
+    def _is_contiguous(tensor: torch.Tensor) -> bool:
+        # jit is oh so lovely :/
+        # if torch.jit.is_tracing():
+        #     return True
+        if torch.jit.is_scripting():
+            return tensor.is_contiguous()
+        else:
+            return tensor.is_contiguous(memory_format=torch.contiguous_format)
+
+    class LayerNorm2d(nn.LayerNorm):
+        r""" LayerNorm for channels_first tensors with 2d spatial dimensions (ie N, C, H, W).
+        """
+
+        def __init__(self, normalized_shape, eps=1e-6):
+            super().__init__(normalized_shape, eps=eps)
+
+        def forward(self, x) -> torch.Tensor:
+            if _is_contiguous(x):
+                return F.layer_norm(
+                    x.permute(0, 2, 3, 1), self.normalized_shape, self.weight, self.bias, self.eps).permute(0, 3, 1, 2)
+            else:
+                s, u = torch.var_mean(x, dim=1, keepdim=True)
+                x = (x - u) * torch.rsqrt(s + self.eps)
+                x = x * self.weight[:, None, None] + self.bias[:, None, None]
+                return x
+
+    model.classifier = torch.nn.Sequential(
+        LayerNorm2d(768, eps=1e-06),
+        nn.Flatten(start_dim=1, end_dim=-1),
+        nn.Linear(
+            in_features=768,
+            out_features=68*2,
+            bias=True
+        )
+    )
+
+    return model
+    
+
 def get_model(model_name, pretrained=False):
     if model_name == "ResNet50":
         return get_resnet50(pretrained)
@@ -259,6 +321,7 @@ def get_model(model_name, pretrained=False):
         return get_efficientnet_v2_s(pretrained)
     elif model_name == "SqueezeNet1_1":
         return get_squeezenet1_1(pretrained)
-    
+    elif model_name == "ConvNeXtTiny":
+        return get_convnext_tiny(pretrained)
     else:
         raise Exception("Model not implemented")

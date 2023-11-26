@@ -17,7 +17,7 @@ parser = argparse.ArgumentParser(description='Test facial keypoint detection mod
 parser.add_argument('--video', type=str, default=None, help='Path to video file')
 parser.add_argument('--image', type=str, default=None, help='Path to image file')
 parser.add_argument('--camera', action='store_true', help='Use camera')
-parser.add_argument('--run', type=str, default="2023-11-24_22-10-28", help='Run name')
+parser.add_argument('--run', type=str, default="2023-11-25_19-53-09", help='Run name')
 parser.add_argument('--save', action='store_true', help='Save output video')
 args = parser.parse_args()
 
@@ -128,7 +128,7 @@ if args.video or args.camera:
         
             
         cv2.imshow('Facial Keypoints Detection',frame)
-        if cv2.waitKey(30) & 0xFF == ord('q'):
+        if cv2.waitKey(10) & 0xFF == ord('q'):
             break
 
         if args.save:
