@@ -48,42 +48,30 @@ def load_model(model, path):
     return model
 
 
-# Define a function to fit a quadratic curve to the keypoints of the lips
 def fit_quadratic_curve(keypoints):
-    # Fit a quadratic function (y = ax^2 + bx + c) to the keypoints
     x = keypoints[:, 0]
     y = keypoints[:, 1]
     coefficients = np.polyfit(x, y, 2)  # Fit a second-degree polynomial
     return coefficients
 
-# Define a function to calculate curvature of the quadratic curve at a specific point
 def curvature_of_quadratic(coefficients, x):
-    # Curvature formula for a quadratic function (y = ax^2 + bx + c) is given by:
-    # K = |2a| / (1 + (2ax + b)^2)^(3/2)
     a, b, _ = coefficients
     curvature = np.abs(2 * a) / (1 + (2 * a * x + b) ** 2) ** 1.5
     return curvature
 
-# Define a function to compute the curvature for multiple points along the lip
 def compute_curvature_for_lip(keypoints):
-    # We will compute the curvature at multiple points along the lip and take the average
     coefficients = fit_quadratic_curve(keypoints)
-    # Generate x values along the lip
     x_values = np.linspace(keypoints[:, 0].min(), keypoints[:, 0].max(), 100)
-    # Calculate the curvature for each x value
     curvatures = [curvature_of_quadratic(coefficients, x) for x in x_values]
-    # Return the average curvature
     return np.mean(curvatures)
 
 def calculate_MAR(keypoints):
-    # Calculate the Mouth Aspect Ratio (MAR)
     width = np.linalg.norm(keypoints['left_mouth_corner'] - keypoints['right_mouth_corner'])
     height = np.linalg.norm(keypoints['top_lip'] - keypoints['bottom_lip'])
     MAR = height / width
     return MAR
 
 def mouth_corner_angle(keypoints):
-    # Calculate the angle at the mouth corners, assuming a simple 2D model
     vec1 = keypoints['top_lip'] - keypoints['left_mouth_corner']
     vec2 = keypoints['bottom_lip'] - keypoints['left_mouth_corner']
     angle_left = np.degrees(np.arctan2(np.linalg.norm(np.cross(vec1, vec2)), np.dot(vec1, vec2)))
@@ -92,47 +80,14 @@ def mouth_corner_angle(keypoints):
     vec4 = keypoints['bottom_lip'] - keypoints['right_mouth_corner']
     angle_right = np.degrees(np.arctan2(np.linalg.norm(np.cross(vec3, vec4)), np.dot(vec3, vec4)))
 
-    # find top and bottom angles
     angle_up = np.degrees(np.arctan2(np.linalg.norm(np.cross(vec1, vec3)), np.dot(vec1, vec3)))
     angle_bottom = np.degrees(np.arctan2(np.linalg.norm(np.cross(vec2, vec4)), np.dot(vec2, vec4)))
     
     return angle_left, angle_right, angle_up, angle_bottom
 
 def classify_emotion(MAR, angle_left, angle_right, angle_up, angle_bottom, curvature_ratio):
-    """
-    Rule-based classification for emotion detection with enhanced logic.
-    The curvature ratio is given primary importance, but other features collectively
-    also play a significant role in the final decision.
-
-    Args:
-        MAR, angles, curvature_ratio: Facial feature measurements.
-
-    Returns:
-        'positive' or 'negative' based on the combined evaluation of features.
-    """
-
-    # Weights for each feature
-    weights = [0.15, 0.15, 0.15, 0.15, 0.2, 0.5]  # Example weights
-
-    # Thresholds for each feature
-    thresholds = [0.4, 29, 33.006, 148.721, 137.835, 0.43]  # Example thresholds
-
-    features = [MAR, angle_left, angle_right, angle_up, angle_bottom, curvature_ratio]
-
-    # Calculate the weighted score for each feature
-    scores = [weight if feature > threshold else -weight for feature, threshold, weight in zip(features, thresholds, weights)]
-
-    # Separate the score for curvature ratio
-    curvature_score = scores[-1]
-
-    # Sum of scores from other features
-    other_features_score = sum(scores[:-1])
-
-    # Threshold for collective contribution of other features
-    collective_threshold = 0.1  # Adjust this value based on your requirements
-
-    # Enhanced decision logic
-    if curvature_score > 0:
+    combined_feature = curvature_ratio * ((angle_left) / (angle_bottom))
+    if combined_feature > 0.43:
         return 'positive'
     return 'negative'
 
@@ -173,8 +128,6 @@ def get_emotion(output):
     curvature_bottom_lip = compute_curvature_for_lip(keypoints['all_bottom_lip'])
     curvature_top_lip = compute_curvature_for_lip(keypoints['all_top_lip'])
     curvature_ratio = curvature_bottom_lip / curvature_top_lip
-
-    curvature_ratio = curvature_ratio * ((angle_left) / (angle_bottom)) 
 
     #create a dictionary with all the values
     results = {
