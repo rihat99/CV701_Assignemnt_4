@@ -99,63 +99,42 @@ def mouth_corner_angle(keypoints):
     return angle_left, angle_right, angle_up, angle_bottom
 
 def classify_emotion(MAR, angle_left, angle_right, angle_up, angle_bottom, curvature_ratio):
+    """
+    Rule-based classification for emotion detection with enhanced logic.
+    The curvature ratio is given primary importance, but other features collectively
+    also play a significant role in the final decision.
 
+    Args:
+        MAR, angles, curvature_ratio: Facial feature measurements.
+
+    Returns:
+        'positive' or 'negative' based on the combined evaluation of features.
     """
 
-    Simple rule-based classification based on MAR, mouth corner angles, and curvature ratio.
+    # Weights for each feature
+    weights = [0.15, 0.15, 0.15, 0.15, 0.2, 0.5]  # Example weights
 
-    """
+    # Thresholds for each feature
+    thresholds = [0.4, 29, 33.006, 148.721, 137.835, 0.43]  # Example thresholds
 
-    # Emotion classification based on multiple factors: MAR, angles, and curvature ratio
-    positive = 0
-    negative = 0
-    # neutral = 0
+    features = [MAR, angle_left, angle_right, angle_up, angle_bottom, curvature_ratio]
 
-    # if MAR > 0.38:
-    #     positive += 1
-    # else:
-    #     negative += 1
+    # Calculate the weighted score for each feature
+    scores = [weight if feature > threshold else -weight for feature, threshold, weight in zip(features, thresholds, weights)]
 
-    # if angle_bottom < 127:
-    #     positive += 1
-    # else:
-    #     negative += 1
+    # Separate the score for curvature ratio
+    curvature_score = scores[-1]
 
-    weights = [0.        , 0.05218067, 0.        , 0.        , 0.        ,
-       0.94781933]
-    if MAR < 0.37 and MAR > 0.39:
-        positive += weights[0]
-    else:
-        negative += weights[0]
+    # Sum of scores from other features
+    other_features_score = sum(scores[:-1])
 
-    if angle_left > 43.628:
-        positive += weights[1]
-    else:
-        negative += weights[1]
-    
-    if angle_right<41 and angle_right>43.5:
-        positive += weights[2]
-    else:
-        negative += weights[2]
+    # Threshold for collective contribution of other features
+    collective_threshold = 0.1  # Adjust this value based on your requirements
 
-    if angle_up > 149:
-        positive += weights[3]
-    else:
-        negative += weights[3]
-    
-    if angle_bottom < 126.5:
-        positive += weights[4]
-    else:
-        negative += weights[4]
-    
-    if curvature_ratio > 0.545:
-        positive += weights[5]
-    else:
-        negative += weights[5]
-
-    
-    
-    return 'positive' if positive > negative else 'negative'
+    # Enhanced decision logic
+    if curvature_score > 0:
+        return 'positive'
+    return 'negative'
 
 
 def get_emotion(output):
@@ -195,10 +174,7 @@ def get_emotion(output):
     curvature_top_lip = compute_curvature_for_lip(keypoints['all_top_lip'])
     curvature_ratio = curvature_bottom_lip / curvature_top_lip
 
-    #distance between left and right mouth corner
-    distance = np.linalg.norm(keypoints['left_mouth_corner'] - keypoints['right_mouth_corner'])
-
-    curvature_ratio = curvature_ratio * distance
+    curvature_ratio = curvature_ratio * ((angle_left) / (angle_bottom)) 
 
     #create a dictionary with all the values
     results = {
