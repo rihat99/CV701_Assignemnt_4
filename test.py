@@ -79,7 +79,7 @@ transforms_test = v2.Compose([
     v2.Resize((IMAGE_SIZE, IMAGE_SIZE), antialias=True),
 ])
 
-def process_frame(frame, framecount):
+def process_frame(frame, framecount, use_template_matching=False):
     frame_orig = frame.copy()
 
     frame_t = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -97,7 +97,7 @@ def process_frame(frame, framecount):
         output = output.reshape(-1, 2)
 
     frame = draw_face_mask(frame, output)
-    emotion, results = get_emotion(output)
+    emotion, results = get_emotion(output, frame_orig, use_template_matching, width, height)
 
     #
     results["frame"] = str(framecount)

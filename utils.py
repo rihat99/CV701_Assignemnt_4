@@ -7,6 +7,42 @@ from scipy.interpolate import interp1d
 from scipy.integrate import quad
 import cv2
 
+dictionary_of_templates={
+    "positive":[cv2.imread('templates/Rikhat/Positive/frame0.jpg',0)[600:700, 300:560],
+                cv2.imread('templates/Rikhat/Positive/frame421.jpg',0)[660:770, 310:570],
+                cv2.imread('templates/Rikhat/Positive/frame98.jpg',0)[600:700, 300:560],
+                cv2.imread('templates/Rikhat/Positive/frame210.jpg',0)[600:700, 220:430],
+                cv2.imread('templates/Rikhat/Positive/frame255.jpg',0)[630:720, 470:700],
+                # Nuren
+                cv2.imread('templates/Nuren/Positive/frame0.jpg',0)[600:680, 320:540],
+                cv2.imread('templates/Nuren/Positive/frame37.jpg',0)[600:690, 320:540],
+                cv2.imread('templates/Nuren/Positive/frame176.jpg',0)[580:670, 490:680],
+                cv2.imread('templates/Nuren/Positive/frame248.jpg',0)[580:680, 160:350],
+                cv2.imread('templates/Nuren/Positive/frame338.jpg',0)[670:770, 290:510],
+                cv2.imread('templates/Nuren/Positive/frame451.jpg',0)[570:670, 310:530],
+                cv2.imread('templates/Nuren/Positive/frame551.jpg',0)[570:660, 280:510]
+
+                ],
+
+                
+    "negative":[cv2.imread('templates/Rikhat/Negative/frame0.jpg',0)[450:520, 320:520],
+                cv2.imread('templates/Rikhat/Negative/frame67.jpg',0)[440:510, 320:520],
+                cv2.imread('templates/Rikhat/Negative/frame135.jpg',0)[380:460, 330:520],
+                cv2.imread('templates/Rikhat/Negative/frame163.jpg',0)[450:530, 560:685],
+                cv2.imread('templates/Rikhat/Negative/frame210.jpg',0)[520:590, 190:340],
+                cv2.imread('templates/Rikhat/Negative/frame525.jpg',0)[550:640, 320:540],
+                # Nuren
+                cv2.imread('templates/Nuren/Negative/frame0.jpg',0)[540:610, 330:480],
+                cv2.imread('templates/Nuren/Negative/frame34.jpg',0)[550:620, 320:490],
+                cv2.imread('templates/Nuren/Negative/frame73.jpg',0)[560:620, 430:600],
+                cv2.imread('templates/Nuren/Negative/frame121.jpg',0)[560:630, 240:420],
+                cv2.imread('templates/Nuren/Negative/frame210.jpg',0)[550:620, 420:590],
+                cv2.imread('templates/Nuren/Negative/frame342.jpg',0)[570:640, 240:380],
+                cv2.imread('templates/Nuren/Negative/frame364.jpg',0)[580:640, 280:440],
+                cv2.imread('templates/Nuren/Negative/frame384.jpg',0)[580:640, 310:490]
+                ]
+}
+
 def plot_results(train_data, val_data, label, save_dir):
 
     plt.figure(figsize=(6, 6))
@@ -85,14 +121,32 @@ def mouth_corner_angle(keypoints):
     
     return angle_left, angle_right, angle_up, angle_bottom
 
-def classify_emotion(MAR, angle_left, angle_right, angle_up, angle_bottom, curvature_ratio):
+def classify_emotion_with_rule_based(MAR, angle_left, angle_right, angle_up, angle_bottom, curvature_ratio):
     combined_feature = curvature_ratio * ((angle_left) / (angle_bottom))
     if combined_feature > 0.43:
         return 'positive'
     return 'negative'
 
+def classifying_with_template_matching(cropped_mouth, templates_dictionary):
+  method = eval('cv2.TM_CCOEFF_NORMED')
+  positive_emotion_response=[]
+  negative_emotion_response=[]
+  for template in templates_dictionary["positive"]:
+    res = cv2.matchTemplate(cropped_mouth,template,method)
+    _, max_val, _, _ = cv2.minMaxLoc(res)
+    positive_emotion_response.append(max_val)
 
-def get_emotion(output):
+  for template in templates_dictionary["negative"]:
+    res = cv2.matchTemplate(cropped_mouth,template,method)
+    _, max_val, _, _ = cv2.minMaxLoc(res)
+    negative_emotion_response.append(max_val)
+  
+  predicted_emotion= "positive" if max(positive_emotion_response)>\
+    max(negative_emotion_response) else "negative"
+  print("predicted emotion is ", predicted_emotion)
+  return predicted_emotion
+
+def get_emotion(output, frame_orig, use_template_matching, width, height):
     keypoints = {
         'left_mouth_corner': None,
         'top_lip': None,
@@ -139,8 +193,26 @@ def get_emotion(output):
         'curvature_ratio': str(curvature_ratio),
     }
 
-
-    emotion = classify_emotion(MAR, angle_left, angle_right, angle_up, angle_bottom, curvature_ratio)
+    if use_template_matching:
+        cropped_mouth = cv2.cvtColor(frame_orig, cv2.COLOR_BGR2GRAY)
+        cropped_mouth=cropped_mouth[int(keypoints['left_mouth_corner'][1]*height-
+                                        0.1*height):
+                                    int(keypoints['left_mouth_corner'][1]*height+
+                                        0.1*height), 
+                                    int(keypoints['left_mouth_corner'][0]*width-
+                                        0.05*width):
+                                    int(keypoints['right_mouth_corner'][0]*width+
+                                        0.1*width)]
+        
+        predicted_emotion=classifying_with_template_matching(cropped_mouth, 
+                        {emotion:[cv2.resize(template, 
+                        (cropped_mouth.shape[1]-10, cropped_mouth.shape[0]-10))
+                        for template in template_list] for emotion, template_list
+                        in dictionary_of_templates.items()})
+        
+        emotion=predicted_emotion
+    else:
+        emotion = classify_emotion_with_rule_based(MAR, angle_left, angle_right, angle_up, angle_bottom, curvature_ratio)
 
     return emotion, results
 
